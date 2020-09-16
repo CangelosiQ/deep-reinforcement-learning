@@ -56,6 +56,16 @@ agent = Agent(state_size=np.product(env.observation_space.shape), action_size=en
 
 # In[3]:
 
+def plot_scores(scores, rolling_window=100):
+    """Plot scores and optional rolling mean using specified window."""
+    plt.plot(scores); plt.title("Scores");
+    plt.xlabel('Episode #')
+    plt.ylabel('Score')
+    rolling_mean = pd.Series(scores).rolling(rolling_window).mean()
+    plt.plot(rolling_mean);
+    plt.savefig(f"scores_{pd.Timestamp.utcnow().value}.png")
+    return rolling_mean
+
 
 def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995, save_path:str = None, save_every: int
 = None,
@@ -113,6 +123,7 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
             agent.save(filepath=save_path)
             with open(save_path + "/scores.pickle", "wb") as f:
                 pickle.dump(scores, f)
+            rolling_mean = plot_scores(scores)
 
     if save_path:
         agent.save(filepath=save_path)
@@ -122,17 +133,7 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     return scores
 
 
-scores = dqn(n_episodes=5, save_every=100, save_path=".", reload_path='.')
-
-def plot_scores(scores, rolling_window=100):
-    """Plot scores and optional rolling mean using specified window."""
-    plt.plot(scores); plt.title("Scores");
-    plt.xlabel('Episode #')
-    plt.ylabel('Score')
-    rolling_mean = pd.Series(scores).rolling(rolling_window).mean()
-    plt.plot(rolling_mean);
-    plt.savefig(f"scores_{pd.Timestamp.utcnow().value}.png")
-    return rolling_mean
+scores = dqn(n_episodes=1000, save_every=100, save_path=".", reload_path='.')
 
 rolling_mean = plot_scores(scores)
 
