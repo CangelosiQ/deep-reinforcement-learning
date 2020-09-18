@@ -133,7 +133,7 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     return scores
 
 
-scores = dqn(n_episodes=1000, save_every=100, save_path=".", reload_path='.')
+scores = dqn(n_episodes=1000, save_every=100, save_path=".", reload_path=None)
 
 rolling_mean = plot_scores(scores)
 
