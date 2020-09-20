@@ -11,20 +11,16 @@
 import pickle
 
 import gym
-import random
 import torch
 import numpy as np
 from collections import deque
-import matplotlib.pyplot as plt
 import os
-import pandas as pd
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 # ### 2. Instantiate the Environment and Agent
 # 
 # Initialize the environment in the code cell below.
 
 # In[2]:
-
+from RL_library.utils.visualization import plot_scores
 
 env = gym.make('Breakout-v0')
 env.seed(0)
@@ -32,9 +28,9 @@ print(f'State shape: {env.observation_space.shape} = {np.product(env.observation
 print('Number of actions: ', env.action_space.n)
 
 # In[3]:
-from dqn_agent import Agent
+from dqn_agent import DQAgent
 
-agent = Agent(state_size=np.product(env.observation_space.shape), action_size=env.action_space.n, seed=0)
+agent = DQAgent(state_size=np.product(env.observation_space.shape), action_size=env.action_space.n, seed=0)
 
 # watch an untrained agent
 # state = env.reset()
@@ -56,16 +52,6 @@ agent = Agent(state_size=np.product(env.observation_space.shape), action_size=en
 
 # In[3]:
 
-def plot_scores(scores, rolling_window=100):
-    """Plot scores and optional rolling mean using specified window."""
-    plt.plot(scores); plt.title("Scores");
-    plt.xlabel('Episode #')
-    plt.ylabel('Score')
-    rolling_mean = pd.Series(scores).rolling(rolling_window).mean()
-    plt.plot(rolling_mean);
-    plt.savefig(f"scores_{pd.Timestamp.utcnow().value}.png")
-    return rolling_mean
-
 
 def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995, save_path:str = None, save_every: int
 = None,
@@ -81,7 +67,7 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         eps_decay (float): multiplicative factor (per episode) for decreasing epsilon
     """
     scores = []                        # list containing scores from each episode
-    if reload_path is not None:
+    if reload_path is not None and os.path.exists(reload_path+"/checkpoint.pth"):
         print("Reloading session...")
         agent.load(filepath=reload_path)
         with open(reload_path+"/scores.pickle", "rb") as f:
@@ -133,7 +119,8 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     return scores
 
 
-scores = dqn(n_episodes=1000, save_every=100, save_path=".", reload_path=None)
+scores = dqn(n_episodes=2000, save_every=100, save_path=".", reload_path=".")
+
 
 rolling_mean = plot_scores(scores)
 

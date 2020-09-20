@@ -1,7 +1,6 @@
 import numpy as np
 from collections import defaultdict
 
-from RL_library.base_control import ControlProblem
 from RL_library.temporal_difference_control import TemporalDifferences
 
 

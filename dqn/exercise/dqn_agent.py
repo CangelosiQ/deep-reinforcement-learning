@@ -5,20 +5,21 @@ from collections import namedtuple, deque
 from model import QNetwork
 
 import torch
+from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
+BUFFER_SIZE = int(1e4)  # replay buffer size
 BATCH_SIZE = 64  # minibatch size
-GAMMA = 0.99  # discount factor
+GAMMA = 0.95  # discount factor
 TAU = 1e-3  # for soft update of target parameters
-LR = 5e-4  # learning rate
+LR = 5e-3  # learning rate
 UPDATE_EVERY = 4  # how often to update the network
-
+print(f"/////////////////// torch.cuda.is_available() = {torch.cuda.is_available()}")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class Agent():
+class DQAgent():
     """Interacts with and learns from the environment."""
 
     def __init__(self, state_size, action_size, hidden_layer_sizes=[256, 64], seed=42):
@@ -36,9 +37,16 @@ class Agent():
         self.seed = random.seed(seed)
 
         # Q-Network
-        self.qnetwork_local = QNetwork(state_size, action_size,
-                                       hidden_layers_sizes=hidden_layer_sizes,
-                                       seed=seed).to(device)
+        from collections import OrderedDict
+        self.qnetwork_local = nn.Sequential(OrderedDict([
+                                                   ('fc1',  nn.ReLU(nn.Linear(state_size, 10))),
+                                                   ] + [
+                                                   ('output', nn.Linear(10, action_size)),
+                                                   ('softmax', nn.Softmax(dim=1))]))
+
+        # self.qnetwork_local = QNetwork(state_size, action_size,
+        #                                hidden_layers_sizes=hidden_layer_sizes,
+        #                                seed=seed).to(device)
         print(f"Initialized model: {self.qnetwork_local}")
         self.qnetwork_target = QNetwork(state_size, action_size,
                                         hidden_layers_sizes=hidden_layer_sizes,
@@ -66,7 +74,8 @@ class Agent():
 
     @staticmethod
     def preprocess_state(state):
-        return state.flatten()
+        #return state.flatten()
+        return state
 
     def act(self, state, eps=0.):
         """Returns actions for given state as per current policy.
@@ -108,7 +117,7 @@ class Agent():
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
         # Compute loss
-        loss = F.mse_loss(Q_expected, Q_targets)
+        loss = F.mse_loss(Q_expected, Q_targets).to(device)
         print('\rLoss {:.2f}'.format(loss), end="")  # ,
         # Minimize the loss
         self.optimizer.zero_grad()
@@ -138,6 +147,7 @@ class Agent():
             'hidden_layers_sizes': self.hidden_layers_sizes,
             'state_dict_local': self.qnetwork_local.state_dict(),
             'state_dict_target': self.qnetwork_target.state_dict(),
+            'optimizer': self.optimizer.state_dict()
         }
 
         torch.save(checkpoint, filepath+'/checkpoint.pth')
@@ -150,12 +160,16 @@ class Agent():
                                        checkpoint["hidden_layers_sizes"]).to(device)
 
         self.qnetwork_local.load_state_dict(checkpoint['state_dict_local'])
+        self.qnetwork_local.train()
 
         self.qnetwork_target = QNetwork(checkpoint["state_size"],
                                         checkpoint["action_size"],
                                         checkpoint["hidden_layers_sizes"]).to(device)
-
         self.qnetwork_target.load_state_dict(checkpoint['state_dict_target'])
+        self.qnetwork_target.eval()
+
+        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
 
 
 class ReplayBuffer:
